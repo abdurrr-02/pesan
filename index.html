@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Generator Pesanan WA</title>
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#25d366">
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; margin: 0; padding: 0; background: #f0f2f5; color: #1c1e21; }
+    .navbar { background: #075e54; padding: 12px; display: flex; gap: 10px; justify-content: center; }
+    .navbar button { background: #128c7e; color: white; border: none; padding: 8px 16px; border-radius: 20px; cursor: pointer; font-weight: bold; }
+    .navbar button.active { background: #25d366; color: #000; }
+    .container { padding: 16px; max-width: 600px; margin: auto; }
+    .card { background: #fff; border-radius: 8px; padding: 16px; margin-bottom: 16px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+    h2 { margin-top: 0; color: #075e54; font-size: 1.2rem; border-bottom: 2px solid #eee; padding-bottom: 8px; }
+    .form-group { margin-bottom: 12px; }
+    label { display: block; font-size: 0.85rem; font-weight: bold; margin-bottom: 4px; color: #4b4f56; }
+    input, select, textarea { width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 6px; box-sizing: border-box; font-size: 1rem; }
+    .flex-row { display: flex; gap: 8px; align-items: flex-end; }
+    .flex-1 { flex: 1; }
+    button.btn { width: 100%; padding: 12px; border: none; border-radius: 6px; font-weight: bold; font-size: 1rem; cursor: pointer; margin-top: 8px; }
+    .btn-add { background: #e0f2f1; color: #00897b; border: 1px solid #00897b; }
+    .btn-wa { background: #25d366; color: white; }
+    .btn-admin { background: #00897b; color: white; }
+    .btn-del { background: #ff4d4f; color: white; border: none; padding: 8px; border-radius: 4px; cursor: pointer; }
+    .item-row { border: 1px solid #eee; padding: 10px; border-radius: 6px; margin-bottom: 10px; background: #fafafa; }
+    .total-box { font-size: 1.1rem; font-weight: bold; text-align: right; padding: 10px 0; color: #d32f2f; }
+    .hidden { display: none; }
+    table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+    th, td { padding: 10px; border-bottom: 1px solid #ddd; text-align: left; font-size: 0.9rem; }
+  </style>
+</head>
+<body>
+
+  <div class="navbar">
+    <button id="nav-pesan" class="active" onclick="switchView('pesan')">📝 Form Pesanan</button>
+    <button id="nav-admin" onclick="switchView('admin')">⚙️ Admin Produk</button>
+  </div>
+
+  <div class="container">
+    
+    <!-- HALAMAN FORM PESANAN -->
+    <div id="view-pesan">
+      <div class="card">
+        <h2>Data Pemesan</h2>
+        <div class="form-group">
+          <label>Nama Pemesan</label>
+          <input type="text" id="custName" placeholder="Masukkan nama Anda">
+        </div>
+        <div class="form-group">
+          <label>Tanggal Pesan</label>
+          <input type="date" id="orderDate">
+        </div>
+        <div class="form-group">
+          <label>Nomor WA Tujuan (Grup / Admin Toko)</label>
+          <input type="tel" id="waNumber" placeholder="Contoh: 628123456789">
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>Daftar Pesanan</h2>
+        <div id="orderItems"></div>
+        <button class="btn btn-add" onclick="addOrderItem()">+ Tambah Barang</button>
+        <div class="total-box">Total Harga: Rp <span id="grandTotal">0</span></div>
+      </div>
+
+      <div class="card">
+        <div class="form-group">
+          <label>Catatan Tambahan</label>
+          <textarea id="orderNote" rows="2" placeholder="Tulis pesan atau instruksi khusus..."></textarea>
+        </div>
+        <button class="btn btn-wa" onclick="generateAndSendWA()">🚀 Kirim Pesanan ke WA</button>
+      </div>
+    </div>
+
+    <!-- HALAMAN ADMIN -->
+    <div id="view-admin" class="hidden">
+      <div class="card">
+        <h2>Tambah Produk Baru</h2>
+        <div class="form-group">
+          <label>Nama Produk</label>
+          <input type="text" id="newProdName" placeholder="Misal: Kopi Robusta 100g">
+        </div>
+        <div class="form-group">
+          <label>Harga Satuan (Rp)</label>
+          <input type="number" id="newProdPrice" placeholder="Misal: 15000">
+        </div>
+        <button class="btn btn-admin" onclick="saveProduct()">Simpan Produk</button>
+      </div>
+
+      <div class="card">
+        <h2>Daftar Produk Tersedia</h2>
+        <table>
+          <thead><tr><th>Nama Produk</th><th>Harga</th><th>Aksi</th></tr></thead>
+          <tbody id="adminProductList"></tbody>
+        </table>
+      </div>
+    </div>
+
+  </div>
+
+  <script>
+    // Inisialisasi Data Produk dari LocalStorage
+    let products = JSON.parse(localStorage.getItem('wa_products')) || [
+      { id: 1, name: 'Produk Contoh A', price: 10000 },
+      { id: 2, name: 'Produk Contoh B', price: 25000 }
+    ];
+    let cartCounter = 0;
+
+    // Set tanggal hari ini sebagai default
+    document.getElementById('orderDate').valueAsDate = new Date();
+
+    // Fungsi Navigasi Tab
+    function switchView(view) {
+      document.getElementById('view-pesan').classList.add('hidden');
+      document.getElementById('view-admin').classList.add('hidden');
+      document.getElementById('nav-pesan').classList.remove('active');
+      document.getElementById('nav-admin').classList.remove('active');
+      
+      document.getElementById('view-' + view).classList.remove('hidden');
+      document.getElementById('nav-' + view).classList.add('active');
+
+      if(view === 'admin') renderAdminList();
+      if(view === 'pesan') refreshAllSelects(); // Perbarui opsi jika ada perubahan di admin
+    }
+
+    // ==================== LOGIKA ADMIN ====================
+    function saveProduct() {
+      const name = document.getElementById('newProdName').value.trim();
+      const price = parseInt(document.getElementById('newProdPrice').value);
+
+      if (!name || isNaN(price)) return alert('Nama dan Harga produk harus diisi dengan benar!');
+
+      products.push({ id: Date.now(), name, price });
+      localStorage.setItem('wa_products', JSON.stringify(products));
+      
+      document.getElementById('newProdName').value = '';
+      document.getElementById('newProdPrice').value = '';
+      renderAdminList();
+    }
+
+    function deleteProduct(id) {
+      products = products.filter(p => p.id !== id);
+      localStorage.setItem('wa_products', JSON.stringify(products));
+      renderAdminList();
+    }
+
+    function renderAdminList() {
+      const tbody = document.getElementById('adminProductList');
+      tbody.innerHTML = products.map(p => `
+        <tr>
+          <td>${p.name}</td>
+          <td>Rp ${p.price.toLocaleString('id-ID')}</td>
+          <td><button class="btn-del" onclick="deleteProduct(${p.id})">Hapus</button></td>
+        </tr>
+      `).join('');
+    }
+
+    // ==================== LOGIKA FORM PESANAN ====================
+    function getProductOptions() {
+      let options = `<option value="">-- Pilih Produk --</option>`;
+      products.forEach(p => {
+        options += `<option value="${p.id}" data-price="${p.price}" data-name="${p.name}">${p.name} - Rp ${p.price.toLocaleString('id-ID')}</option>`;
+      });
+      return options;
+    }
+
+    function addOrderItem() {
+      cartCounter++;
+      const id = `item-${cartCounter}`;
+      const div = document.createElement('div');
+      div.className = 'item-row';
+      div.id = id;
+      div.innerHTML = `
+        <div class="form-group">
+          <label>Pilih Produk</label>
+          <select class="prod-select" onchange="calculateTotal()">${getProductOptions()}</select>
+        </div>
+        <div class="flex-row">
+          <div class="flex-1 form-group">
+            <label>Jumlah</label>
+            <input type="number" class="prod-qty" value="1" min="1" onchange="calculateTotal()">
+          </div>
+          <div class="flex-1 form-group" style="text-align:right;">
+            <label>Subtotal</label>
+            <div style="padding: 10px 0; font-weight:bold;">Rp <span class="subtotal">0</span></div>
+          </div>
+          <button class="btn-del" style="margin-bottom:12px;" onclick="document.getElementById('${id}').remove(); calculateTotal();">X</button>
+        </div>
+      `;
+      document.getElementById('orderItems').appendChild(div);
+    }
+
+    function refreshAllSelects() {
+      const selects = document.querySelectorAll('.prod-select');
+      selects.forEach(select => {
+        const currentValue = select.value;
+        select.innerHTML = getProductOptions();
+        select.value = currentValue; // Kembalikan pilihan jika produk masih ada
+      });
+      calculateTotal();
+    }
+
+    function calculateTotal() {
+      let grandTotal = 0;
+      const rows = document.querySelectorAll('.item-row');
+      
+      rows.forEach(row => {
+        const select = row.querySelector('.prod-select');
+        const qty = parseInt(row.querySelector('.prod-qty').value) || 0;
+        const subtotalEl = row.querySelector('.subtotal');
+        
+        let price = 0;
+        if (select.selectedIndex > 0) {
+          price = parseInt(select.options[select.selectedIndex].getAttribute('data-price'));
+        }
+        
+        const subtotal = price * qty;
+        subtotalEl.innerText = subtotal.toLocaleString('id-ID');
+        grandTotal += subtotal;
+      });
+
+      document.getElementById('grandTotal').innerText = grandTotal.toLocaleString('id-ID');
+    }
+
+    // ==================== GENERATE PESAN WA ====================
+    function generateAndSendWA() {
+      const name = document.getElementById('custName').value.trim();
+      const date = document.getElementById('orderDate').value;
+      let phone = document.getElementById('waNumber').value.trim().replace(/[^0-9]/g, '');
+      const note = document.getElementById('orderNote').value.trim();
+
+      // Validasi
+      if (!name) return alert('Nama pemesan wajib diisi!');
+      
+      const rows = document.querySelectorAll('.item-row');
+      if (rows.length === 0) return alert('Pilih minimal satu barang pesanan!');
+
+      // Ubah format nomor dari 08xx menjadi 628xx
+      if (phone.startsWith('0')) phone = '62' + phone.slice(1);
+
+      // Susun Teks Pesanan
+      let text = `*PESANAN BARANG*\n`;
+      text += `-----------------------------------\n`;
+      text += `*Nama:* ${name}\n`;
+      text += `*Tanggal:* ${date}\n\n`;
+      text += `*Daftar Pesanan:*\n`;
+
+      let grandTotal = 0;
+      rows.forEach((row, index) => {
+        const select = row.querySelector('.prod-select');
+        const qty = parseInt(row.querySelector('.prod-qty').value) || 0;
+        
+        if (select.selectedIndex > 0) {
+          const prodName = select.options[select.selectedIndex].getAttribute('data-name');
+          const prodPrice = parseInt(select.options[select.selectedIndex].getAttribute('data-price'));
+          const sub = prodPrice * qty;
+          grandTotal += sub;
+
+          text += `${index + 1}. ${prodName}\n`;
+          text += `   ${qty} x Rp ${prodPrice.toLocaleString('id-ID')} = *Rp ${sub.toLocaleString('id-ID')}*\n`;
+        }
+      });
+
+      text += `-----------------------------------\n`;
+      text += `*Total Harga: Rp ${grandTotal.toLocaleString('id-ID')}*\n`;
+      if (note) text += `\n*Catatan:* ${note}\n`;
+
+      // Eksekusi Hyperlink WA
+      const encodedText = encodeURIComponent(text);
+      const waUrl = phone 
+        ? `https://wa.me/${phone}?text=${encodedText}` 
+        : `https://wa.me/?text=${encodedText}`;
+
+      window.open(waUrl, '_blank');
+    }
+
+    // Tampilkan 1 baris pesanan kosong saat pertama kali dimuat
+    addOrderItem();
+
+    // Daftarkan Service Worker
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('sw.js');
+    }
+  </script>
+</body>
+</html>
