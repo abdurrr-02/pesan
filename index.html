@@ -16,7 +16,7 @@
     h2 { margin-top: 0; color: #075e54; font-size: 1.2rem; border-bottom: 2px solid #eee; padding-bottom: 8px; }
     .form-group { margin-bottom: 12px; }
     label { display: block; font-size: 0.85rem; font-weight: bold; margin-bottom: 4px; color: #4b4f56; }
-    input, select, textarea { width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 6px; box-sizing: border-box; font-size: 1rem; }
+    input, textarea { width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 6px; box-sizing: border-box; font-size: 1rem; }
     .flex-row { display: flex; gap: 8px; align-items: flex-end; }
     .flex-1 { flex: 1; }
     button.btn { width: 100%; padding: 12px; border: none; border-radius: 6px; font-weight: bold; font-size: 1rem; cursor: pointer; margin-top: 8px; }
@@ -29,6 +29,29 @@
     .hidden { display: none; }
     table { width: 100%; border-collapse: collapse; margin-top: 10px; }
     th, td { padding: 10px; border-bottom: 1px solid #ddd; text-align: left; font-size: 0.9rem; }
+
+    /* STYLE KHUSUS SEARCH AUTOCOMPLETE */
+    .search-container { position: relative; }
+    .suggestions { 
+      position: absolute; 
+      top: 100%; 
+      left: 0; 
+      right: 0; 
+      background: white; 
+      border: 1px solid #ccc; 
+      border-radius: 6px; 
+      max-height: 200px; 
+      overflow-y: auto; 
+      z-index: 1000; 
+      box-shadow: 0 4px 8px rgba(0,0,0,0.15); 
+    }
+    .suggestion-item { 
+      padding: 10px; 
+      cursor: pointer; 
+      border-bottom: 1px solid #eee; 
+      font-size: 0.9rem; 
+    }
+    .suggestion-item:hover { background: #e0f2f1; }
   </style>
 </head>
 <body>
@@ -101,189 +124,168 @@
   </div>
 
   <script>
-    // Inisialisasi Data Produk dari LocalStorage
-let products = JSON.parse(localStorage.getItem('wa_products')) || [
-  // Facial Wash
-  { id: 1, name: "Bulus Soap 60gr", price: 28000 },
-  { id: 2, name: "Coffee Soap 60gr", price: 23000 },
-  { id: 3, name: "DNA Salmon Soap (NEW)", price: 44000 },
-  { id: 4, name: "Facial Foam Glutathion 100ml (NEW)", price: 92000 },
-  { id: 5, name: "Facial Wash Bulus 100ml", price: 58000 },
-  { id: 6, name: "Facial Wash Coffee 100ml (NEW)", price: 78000 },
-  { id: 7, name: "Facial Wash Greentea 100ml (Hijau) (NEW)", price: 73000 },
-  { id: 8, name: "Facial Wash Greentea 100ml (Putih)", price: 47500 },
-  { id: 9, name: "Facial Wash Honey 100ml (NEW)", price: 77000 },
-  { id: 10, name: "Facial Wash Honey 250ml", price: 89500 },
-  { id: 11, name: "Honey Soap 60gr", price: 25000 },
-  { id: 12, name: "Rice Soap 60gr", price: 25000 },
+    // MASTER DATA PRODUK REAL
+    const defaultProducts = [
+      { id: 1, name: "Bulus Soap 60gr", price: 28000 },
+      { id: 2, name: "Coffee Soap 60gr", price: 23000 },
+      { id: 3, name: "DNA Salmon Soap (NEW)", price: 44000 },
+      { id: 4, name: "Facial Foam Glutathion 100ml (NEW)", price: 92000 },
+      { id: 5, name: "Facial Wash Bulus 100ml", price: 58000 },
+      { id: 6, name: "Facial Wash Coffee 100ml (NEW)", price: 78000 },
+      { id: 7, name: "Facial Wash Greentea 100ml (Hijau) (NEW)", price: 73000 },
+      { id: 8, name: "Facial Wash Greentea 100ml (Putih)", price: 47500 },
+      { id: 9, name: "Facial Wash Honey 100ml (NEW)", price: 77000 },
+      { id: 10, name: "Facial Wash Honey 250ml", price: 89500 },
+      { id: 11, name: "Honey Soap 60gr", price: 25000 },
+      { id: 12, name: "Rice Soap 60gr", price: 25000 },
+      { id: 13, name: "Coffe Mask Tube", price: 82000 },
+      { id: 14, name: "Kefir Peeling Mask Powder 50gr", price: 42000 },
+      { id: 15, name: "Sheet Mask Acne 5x10ml", price: 63000 },
+      { id: 16, name: "Sheet Mask Brightening 5x10ml", price: 63000 },
+      { id: 17, name: "Acne Toner 60ml", price: 100000 },
+      { id: 18, name: "Milk Cleanser Tube 100ml", price: 70500 },
+      { id: 19, name: "Micellar Water 100ml", price: 47500 },
+      { id: 20, name: "Toner AHA 60ml", price: 73500 },
+      { id: 21, name: "Toner BHA 60ml (NEW)", price: 88000 },
+      { id: 22, name: "Toner Chamomile 60ml", price: 63000 },
+      { id: 23, name: "Daily Cover Natural 10gr (NEW)", price: 110000 },
+      { id: 24, name: "Daily Cover Sheer Pink 10gr (NEW)", price: 110000 },
+      { id: 25, name: "Daily Cover Beige 10gr (NEW)", price: 110000 },
+      { id: 26, name: "Ceramide Skin Barrier Care 18gr", price: 93500 },
+      { id: 27, name: "Cream Blush Peach 3gr", price: 40000 },
+      { id: 28, name: "Cream Blush Pink 3gr", price: 40000 },
+      { id: 29, name: "Eye Brow 2 in 1 SR12", price: 121000 },
+      { id: 30, name: "Eye Brow SR12", price: 68500 },
+      { id: 31, name: "Lip Balm Cherry 3,5gr", price: 42000 },
+      { id: 32, name: "Lip Care Cherry 5gr (NEW)", price: 39000 },
+      { id: 33, name: "Lip Care Natural 5gr (NEW)", price: 39000 },
+      { id: 34, name: "Lip Cream 2gr All Varian (NEW)", price: 65000 },
+      { id: 35, name: "Lip Cream 4gr All Varian", price: 105000 },
+      { id: 36, name: "Lip Glow Serum 2gr", price: 52500 },
+      { id: 37, name: "Lip Mousse Cream 2gr (NEW)", price: 75000 },
+      { id: 38, name: "Lip Mousse Rose Pink 2gr (NEW)", price: 75000 },
+      { id: 39, name: "Lip Mousse Sweet Brown 2gr (NEW)", price: 75000 },
+      { id: 40, name: "Lip Potion 8gr", price: 50000 },
+      { id: 41, name: "Lip Scrub 6gr", price: 39000 },
+      { id: 42, name: "Lip Tint Gel 2gr", price: 52500 },
+      { id: 43, name: "Lip Treatment Package", price: 115000 },
+      { id: 44, name: "Loose Powder (NEW)", price: 105000 },
+      { id: 45, name: "Nature Rose Water 100ml", price: 52500 },
+      { id: 46, name: "Nature Rose Water 60ml", price: 38000 },
+      { id: 47, name: "Nature Secret Water 100ml", price: 52500 },
+      { id: 48, name: "Nature Secret Water 60ml", price: 38000 },
+      { id: 49, name: "Sun Block 15gr", price: 58000 },
+      { id: 50, name: "Sun Care 12gr", price: 55500 },
+      { id: 51, name: "Sunscreen Gel Spf 50 30gr", price: 115000 },
+      { id: 52, name: "Acne Total Tube 8gr", price: 59000 },
+      { id: 53, name: "Acne Cream 12,5gr", price: 85000 },
+      { id: 54, name: "BB Cream Natural (Beige) 30ml (NEW)", price: 90000 },
+      { id: 55, name: "Brightening Day Cream 10gr", price: 121000 },
+      { id: 56, name: "Brightening Night Cream 10gr", price: 121000 },
+      { id: 57, name: "Cushion Ivory 15gr (NEW)", price: 240000 },
+      { id: 58, name: "Refill Cushion Ivory 15gr", price: 126000 },
+      { id: 59, name: "Cushion Natural 15gr (NEW)", price: 240000 },
+      { id: 60, name: "Refill Cushion Natural 15gr", price: 126000 },
+      { id: 61, name: "DNA Salmon Package (NEW)", price: 260000 },
+      { id: 62, name: "DNA Salmon Day Cream (NEW)", price: 112500 },
+      { id: 63, name: "DNA Salmon Night Cream (NEW)", price: 112500 },
+      { id: 64, name: "Krasny Day Cream 10gr", price: 79000 },
+      { id: 65, name: "Krasny Night Cream 10gr", price: 79000 },
+      { id: 66, name: "Spot Essence Day Cream 10gr", price: 136500 },
+      { id: 67, name: "Spot Essence Night Cream 10gr", price: 136500 },
+      { id: 68, name: "Acne Serum 20ml", price: 115500 },
+      { id: 69, name: "Capper Peptide 10ml", price: 185000 },
+      { id: 70, name: "Face Oil 18ml (NEW)", price: 150000 },
+      { id: 71, name: "Retinol Serum 20ml", price: 147000 },
+      { id: 72, name: "Peeling Serum 10ml", price: 57000 },
+      { id: 73, name: "Revitalizing Serum 20ml", price: 91500 },
+      { id: 74, name: "Glow Mill 100gr", price: 84000 },
+      { id: 75, name: "Glow Mill 200gr", price: 147000 },
+      { id: 76, name: "GoMilku Gold 200gr", price: 55000 },
+      { id: 77, name: "GoMilku Gold 600gr", price: 136000 },
+      { id: 78, name: "GoMilku Ori / Coklat / Stw 200gr", price: 52500 },
+      { id: 79, name: "GoMilku Ori / Coklat / Stw 600gr", price: 131500 },
+      { id: 80, name: "GoMilku Sachet 1 pcs", price: 7000 },
+      { id: 81, name: "GoMilku Sachet 1 renceng / 10 pcs", price: 65000 },
+      { id: 82, name: "GoMilku Sachet Ckl, Ori, Stw 1 pack", price: 215000 },
+      { id: 83, name: "GoMilku Sachet Gold 1 pack / 40 pcs", price: 220000 },
+      { id: 84, name: "Habbatussauda 120 Kapsul (NEW)", price: 140000 },
+      { id: 85, name: "Lemonkuh SR12 250ml (NEW)", price: 81000 },
+      { id: 86, name: "Lemonkuh SR12 500ml (NEW)", price: 114000 },
+      { id: 87, name: "Madu Baduy 140gr", price: 60000 },
+      { id: 88, name: "Madu Baduy 300gr", price: 110000 },
+      { id: 89, name: "Manjakani 60 Kapsul (NEW)", price: 85000 },
+      { id: 90, name: "Manjakani 60 Butir (NEW)", price: 85000 },
+      { id: 91, name: "Maxi Propolis 10ml (NEW)", price: 138000 },
+      { id: 92, name: "Salimah Slim 60 Kapsul", price: 70000 },
+      { id: 93, name: "Sari Kurma 360 gr (NEW)", price: 79000 },
+      { id: 94, name: "Shiyou Collagen 1 box isi 15 sachet", price: 195000 },
+      { id: 95, name: "Shiyou Collagen 1 sachet", price: 15000 },
+      { id: 96, name: "Shiyou Collagen 100gr", price: 89500 },
+      { id: 97, name: "Shiyou Collagen 200gr", price: 157500 },
+      { id: 98, name: "Stevia12 5ml (NEW)", price: 45000 },
+      { id: 99, name: "Stevia12 15ml (NEW)", price: 75000 },
+      { id: 100, name: "VCO Cair 60ml (NEW)", price: 48000 },
+      { id: 101, name: "VCO Cair 100ml (NEW)", price: 62000 },
+      { id: 102, name: "VCO Cair 250ml (NEW)", price: 113500 },
+      { id: 103, name: "VCO Kapsul 100 Kapsul (NEW)", price: 68000 },
+      { id: 104, name: "Alarise Shampoo 100 ml (Tube)", price: 37000 },
+      { id: 105, name: "Alarise Shampoo 280 ml (Pump)", price: 89500 },
+      { id: 106, name: "Coconut Shampoo 100 ml (Tube)", price: 37000 },
+      { id: 107, name: "Coconut Shampoo 200 ml (Tube)", price: 65000 },
+      { id: 108, name: "Coconut Shampoo 280 ml (Pump)", price: 89500 },
+      { id: 109, name: "Hair Conditioner 125 ml", price: 71500 },
+      { id: 110, name: "Hair Serum With Jasmine Oil 20ml (NEW)", price: 51000 },
+      { id: 111, name: "Hair Serum With Rose Oil 20ml (NEW)", price: 51000 },
+      { id: 112, name: "Hair Tonic Protection Spray 100ml", price: 185000 },
+      { id: 113, name: "Bubble Bath Pump 300 ml", price: 58000 },
+      { id: 114, name: "Bubble Bath tube 100 ml", price: 35000 },
+      { id: 115, name: "Lotion Telon Daun Bidara 100gr", price: 40000 },
+      { id: 116, name: "Shampoo & Conditioner pump 300ml", price: 115500 },
+      { id: 117, name: "Shampoo & Conditioner tube 100ml", price: 52000 },
+      { id: 118, name: "SR KIDDOS Package", price: 173500 },
+      { id: 119, name: "Body Wash Aloe Vera 250ml", price: 63000 },
+      { id: 120, name: "Body Wash Aloe Vera Tube 100ml", price: 31500 },
+      { id: 121, name: "Body Wash Aloe Vera Tube 250ml", price: 63000 },
+      { id: 122, name: "Body Wash Black Coffee Tube 100ml", price: 31500 },
+      { id: 123, name: "Body Wash Black Coffee Tube 250ml", price: 53000 },
+      { id: 124, name: "Booperi Parfume Secret Amor 100ml", price: 295000 },
+      { id: 125, name: "Booperi Parfume Vanilla R 100ml", price: 295000 },
+      { id: 126, name: "Booperi Perfume Fantasy 30ml", price: 61000 },
+      { id: 127, name: "Booperi Perfume Misteriosa 30ml", price: 61000 },
+      { id: 128, name: "Booperi Perfume Tea Blush 10ml", price: 45000 },
+      { id: 129, name: "Booperi Perfume Cherry Pop 10ml", price: 45000 },
+      { id: 130, name: "Booperi Perfume Velvet Oud 10ml", price: 45000 },
+      { id: 131, name: "Deodorant Premium 60ml", price: 63000 },
+      { id: 132, name: "Deodorant Spray 60ml", price: 42000 },
+      { id: 133, name: "Lightening Body Lotion Tube 100ml (NEW)", price: 86000 },
+      { id: 134, name: "Massage Oil Bulus 20ml (NEW)", price: 130000 },
+      { id: 135, name: "Miss Manja Spray (NEW)", price: 57000 },
+      { id: 136, name: "Miss Manja Wash (NEW)", price: 57000 },
+      { id: 137, name: "Paket Miss Manja (NEW)", price: 100000 },
+      { id: 138, name: "Pasta Gigi Charcoal 100gr", price: 48000 },
+      { id: 139, name: "Pasta Gigi Charcoal 170gr (NEW)", price: 60000 },
+      { id: 140, name: "Pasta Gigi Siwak dan Sirih 100gr (NEW)", price: 72000 },
+      { id: 141, name: "Pasta Gigi Siwak dan Sirih 170gr (NEW)", price: 82000 },
+      { id: 142, name: "Scrub Cream Coffee 125gr", price: 42000 },
+      { id: 143, name: "Whitening Moisturizing Cream 100ml", price: 94500 },
+      { id: 144, name: "Whitening Night Body Lotion 100ml", price: 84000 },
+      { id: 145, name: "Bar Soap Majie", price: 27500 },
+      { id: 146, name: "Bar Soap Sacte", price: 27500 },
+      { id: 147, name: "Bar Soap Sicad", price: 27500 },
+      { id: 148, name: "Body Serum (Hijau) At The Garden", price: 69000 },
+      { id: 149, name: "Body Serum (Ungu) Sweet Berry", price: 69000 },
+      { id: 150, name: "Body Serum (Cream) I Need Me Time", price: 72000 },
+      { id: 151, name: "Body Scrub (Hijau) At The Garden", price: 72500 },
+      { id: 152, name: "Body Scrub (Ungu) Sweet Berry", price: 77000 },
+      { id: 153, name: "Body Scrub (Cream) I Need Me Time", price: 91000 }
+    ];
 
-  // Face Mask
-  { id: 13, name: "Coffe Mask Tube", price: 82000 },
-  { id: 14, name: "Kefir Peeling Mask Powder 50gr", price: 42000 },
-  { id: 15, name: "Sheet Mask Acne 5x10ml", price: 63000 },
-  { id: 16, name: "Sheet Mask Brightening 5x10ml", price: 63000 },
-
-  // Face Cleanser
-  { id: 17, name: "Acne Toner 60ml", price: 100000 },
-  { id: 18, name: "Milk Cleanser Tube 100ml", price: 70500 },
-  { id: 19, name: "Micellar Water 100ml", price: 47500 },
-  { id: 20, name: "Toner AHA 60ml", price: 73500 },
-  { id: 21, name: "Toner BHA 60ml (NEW)", price: 88000 },
-  { id: 22, name: "Toner Chamomile 60ml", price: 63000 },
-
-  // Face Care
-  { id: 23, name: "Daily Cover Natural 10gr (NEW)", price: 110000 },
-  { id: 24, name: "Daily Cover Sheer Pink 10gr (NEW)", price: 110000 },
-  { id: 25, name: "Daily Cover Beige 10gr (NEW)", price: 110000 },
-  { id: 26, name: "Ceramide Skin Barrier Care 18gr", price: 93500 },
-  { id: 27, name: "Cream Blush Peach 3gr", price: 40000 },
-  { id: 28, name: "Cream Blush Pink 3gr", price: 40000 },
-  { id: 29, name: "Eye Brow 2 in 1 SR12", price: 121000 },
-  { id: 30, name: "Eye Brow SR12", price: 68500 },
-  { id: 31, name: "Lip Balm Cherry 3,5gr", price: 42000 },
-  { id: 32, name: "Lip Care Cherry 5gr (NEW)", price: 39000 },
-  { id: 33, name: "Lip Care Natural 5gr (NEW)", price: 39000 },
-  { id: 34, name: "Lip Cream 2gr All Varian (NEW)", price: 65000 },
-  { id: 35, name: "Lip Cream 4gr All Varian", price: 105000 },
-  { id: 36, name: "Lip Glow Serum 2gr", price: 52500 },
-  { id: 37, name: "Lip Mousse Cream 2gr (NEW)", price: 75000 },
-  { id: 38, name: "Lip Mousse Rose Pink 2gr (NEW)", price: 75000 },
-  { id: 39, name: "Lip Mousse Sweet Brown 2gr (NEW)", price: 75000 },
-  { id: 40, name: "Lip Potion 8gr", price: 50000 },
-  { id: 41, name: "Lip Scrub 6gr", price: 39000 },
-  { id: 42, name: "Lip Tint Gel 2gr", price: 52500 },
-  { id: 43, name: "Lip Treatment Package", price: 115000 },
-  { id: 44, name: "Loose Powder (NEW)", price: 105000 },
-  { id: 45, name: "Nature Rose Water 100ml", price: 52500 },
-  { id: 46, name: "Nature Rose Water 60ml", price: 38000 },
-  { id: 47, name: "Nature Secret Water 100ml", price: 52500 },
-  { id: 48, name: "Nature Secret Water 60ml", price: 38000 },
-  { id: 49, name: "Sun Block 15gr", price: 58000 },
-  { id: 50, name: "Sun Care 12gr", price: 55500 },
-  { id: 51, name: "Sunscreen Gel Spf 50 30gr", price: 115000 },
-
-  // Face Cream
-  { id: 52, name: "Acne Total Tube 8gr", price: 59000 },
-  { id: 53, name: "Acne Cream 12,5gr", price: 85000 },
-  { id: 54, name: "BB Cream Natural (Beige) 30ml (NEW)", price: 90000 },
-  { id: 55, name: "Brightening Day Cream 10gr", price: 121000 },
-  { id: 56, name: "Brightening Night Cream 10gr", price: 121000 },
-  { id: 57, name: "Cushion Ivory 15gr (NEW)", price: 240000 },
-  { id: 58, name: "Refill Cushion Ivory 15gr", price: 126000 },
-  { id: 59, name: "Cushion Natural 15gr (NEW)", price: 240000 },
-  { id: 60, name: "Refill Cushion Natural 15gr", price: 126000 },
-  { id: 61, name: "DNA Salmon Package (NEW)", price: 260000 },
-  { id: 62, name: "DNA Salmon Day Cream (NEW)", price: 112500 },
-  { id: 63, name: "DNA Salmon Night Cream (NEW)", price: 112500 },
-  { id: 64, name: "Krasny Day Cream 10gr", price: 79000 },
-  { id: 65, name: "Krasny Night Cream 10gr", price: 79000 },
-  { id: 66, name: "Spot Essence Day Cream 10gr", price: 136500 },
-  { id: 67, name: "Spot Essence Night Cream 10gr", price: 136500 },
-
-  // Face Serum
-  { id: 68, name: "Acne Serum 20ml", price: 115500 },
-  { id: 69, name: "Capper Peptide 10ml", price: 185000 },
-  { id: 70, name: "Face Oil 18ml (NEW)", price: 150000 },
-  { id: 71, name: "Retinol Serum 20ml", price: 147000 },
-  { id: 72, name: "Peeling Serum 10ml", price: 57000 },
-  { id: 73, name: "Revitalizing Serum 20ml", price: 91500 },
-
-  // Healthy Care
-  { id: 74, name: "Glow Mill 100gr", price: 84000 },
-  { id: 75, name: "Glow Mill 200gr", price: 147000 },
-  { id: 76, name: "GoMilku Gold 200gr", price: 55000 },
-  { id: 77, name: "GoMilku Gold 600gr", price: 136000 },
-  { id: 78, name: "GoMilku Ori / Coklat / Stw 200gr", price: 52500 },
-  { id: 79, name: "GoMilku Ori / Coklat / Stw 600gr", price: 131500 },
-  { id: 80, name: "GoMilku Sachet 1 pcs", price: 7000 },
-  { id: 81, name: "GoMilku Sachet 1 renceng / 10 pcs", price: 65000 },
-  { id: 82, name: "GoMilku Sachet Ckl, Ori, Stw 1 pack", price: 215000 },
-  { id: 83, name: "GoMilku Sachet Gold 1 pack / 40 pcs", price: 220000 },
-  { id: 84, name: "Habbatussauda 120 Kapsul (NEW)", price: 140000 },
-  { id: 85, name: "Lemonkuh SR12 250ml (NEW)", price: 81000 },
-  { id: 86, name: "Lemonkuh SR12 500ml (NEW)", price: 114000 },
-  { id: 87, name: "Madu Baduy 140gr", price: 60000 },
-  { id: 88, name: "Madu Baduy 300gr", price: 110000 },
-  { id: 89, name: "Manjakani 60 Kapsul (NEW)", price: 85000 },
-  { id: 90, name: "Manjakani 60 Butir (NEW)", price: 85000 },
-  { id: 91, name: "Maxi Propolis 10ml (NEW)", price: 138000 },
-  { id: 92, name: "Salimah Slim 60 Kapsul", price: 70000 },
-  { id: 93, name: "Sari Kurma 360 gr (NEW)", price: 79000 },
-  { id: 94, name: "Shiyou Collagen 1 box isi 15 sachet", price: 195000 },
-  { id: 95, name: "Shiyou Collagen 1 sachet", price: 15000 },
-  { id: 96, name: "Shiyou Collagen 100gr", price: 89500 },
-  { id: 97, name: "Shiyou Collagen 200gr", price: 157500 },
-  { id: 98, name: "Stevia12 5ml (NEW)", price: 45000 },
-  { id: 99, name: "Stevia12 15ml (NEW)", price: 75000 },
-  { id: 100, name: "VCO Cair 60ml (NEW)", price: 48000 },
-  { id: 101, name: "VCO Cair 100ml (NEW)", price: 62000 },
-  { id: 102, name: "VCO Cair 250ml (NEW)", price: 113500 },
-  { id: 103, name: "VCO Kapsul 100 Kapsul (NEW)", price: 68000 },
-
-  // Hair Care
-  { id: 104, name: "Alarise Shampoo 100 ml (Tube)", price: 37000 },
-  { id: 105, name: "Alarise Shampoo 280 ml (Pump)", price: 89500 },
-  { id: 106, name: "Coconut Shampoo 100 ml (Tube)", price: 37000 },
-  { id: 107, name: "Coconut Shampoo 200 ml (Tube)", price: 65000 },
-  { id: 108, name: "Coconut Shampoo 280 ml (Pump)", price: 89500 },
-  { id: 109, name: "Hair Conditioner 125 ml", price: 71500 },
-  { id: 110, name: "Hair Serum With Jasmine Oil 20ml (NEW)", price: 51000 },
-  { id: 111, name: "Hair Serum With Rose Oil 20ml (NEW)", price: 51000 },
-  { id: 112, name: "Hair Tonic Protection Spray 100ml", price: 185000 },
-
-  // Baby Care
-  { id: 113, name: "Bubble Bath Pump 300 ml", price: 58000 },
-  { id: 114, name: "Bubble Bath tube 100 ml", price: 35000 },
-  { id: 115, name: "Lotion Telon Daun Bidara 100gr", price: 40000 },
-  { id: 116, name: "Shampoo & Conditioner pump 300ml", price: 115500 },
-  { id: 117, name: "Shampoo & Conditioner tube 100ml", price: 52000 },
-  { id: 118, name: "SR KIDDOS Package", price: 173500 },
-
-  // Body Care
-  { id: 119, name: "Body Wash Aloe Vera 250ml", price: 63000 },
-  { id: 120, name: "Body Wash Aloe Vera Tube 100ml", price: 31500 },
-  { id: 121, name: "Body Wash Aloe Vera Tube 250ml", price: 63000 },
-  { id: 122, name: "Body Wash Black Coffee Tube 100ml", price: 31500 },
-  { id: 123, name: "Body Wash Black Coffee Tube 250ml", price: 53000 },
-  { id: 124, name: "Booperi Parfume Secret Amor 100ml", price: 295000 },
-  { id: 125, name: "Booperi Parfume Vanilla R 100ml", price: 295000 },
-  { id: 126, name: "Booperi Perfume Fantasy 30ml", price: 61000 },
-  { id: 127, name: "Booperi Perfume Misteriosa 30ml", price: 61000 },
-  { id: 128, name: "Booperi Perfume Tea Blush 10ml", price: 45000 },
-  { id: 129, name: "Booperi Perfume Cherry Pop 10ml", price: 45000 },
-  { id: 130, name: "Booperi Perfume Velvet Oud 10ml", price: 45000 },
-  { id: 131, name: "Deodorant Premium 60ml", price: 63000 },
-  { id: 132, name: "Deodorant Spray 60ml", price: 42000 },
-  { id: 133, name: "Lightening Body Lotion Tube 100ml (NEW)", price: 86000 },
-  { id: 134, name: "Massage Oil Bulus 20ml (NEW)", price: 130000 },
-  { id: 135, name: "Miss Manja Spray (NEW)", price: 57000 },
-  { id: 136, name: "Miss Manja Wash (NEW)", price: 57000 },
-  { id: 137, name: "Paket Miss Manja (NEW)", price: 100000 },
-  { id: 138, name: "Pasta Gigi Charcoal 100gr", price: 48000 },
-  { id: 139, name: "Pasta Gigi Charcoal 170gr (NEW)", price: 60000 },
-  { id: 140, name: "Pasta Gigi Siwak dan Sirih 100gr (NEW)", price: 72000 },
-  { id: 141, name: "Pasta Gigi Siwak dan Sirih 170gr (NEW)", price: 82000 },
-  { id: 142, name: "Scrub Cream Coffee 125gr", price: 42000 },
-  { id: 143, name: "Whitening Moisturizing Cream 100ml", price: 94500 },
-  { id: 144, name: "Whitening Night Body Lotion 100ml", price: 84000 },
-
-  // SKINSANE
-  { id: 145, name: "Bar Soap Majie", price: 27500 },
-  { id: 146, name: "Bar Soap Sacte", price: 27500 },
-  { id: 147, name: "Bar Soap Sicad", price: 27500 },
-  { id: 148, name: "Body Serum (Hijau) At The Garden", price: 69000 },
-  { id: 149, name: "Body Serum (Ungu) Sweet Berry", price: 69000 },
-  { id: 150, name: "Body Serum (Cream) I Need Me Time", price: 72000 },
-  { id: 151, name: "Body Scrub (Hijau) At The Garden", price: 72500 },
-  { id: 152, name: "Body Scrub (Ungu) Sweet Berry", price: 77000 },
-  { id: 153, name: "Body Scrub (Cream) I Need Me Time", price: 91000 }
-];
+    let products = JSON.parse(localStorage.getItem('wa_products')) || defaultProducts;
     let cartCounter = 0;
 
-    // Set tanggal hari ini sebagai default
     document.getElementById('orderDate').valueAsDate = new Date();
 
-    // Fungsi Navigasi Tab
     function switchView(view) {
       document.getElementById('view-pesan').classList.add('hidden');
       document.getElementById('view-admin').classList.add('hidden');
@@ -294,15 +296,14 @@ let products = JSON.parse(localStorage.getItem('wa_products')) || [
       document.getElementById('nav-' + view).classList.add('active');
 
       if(view === 'admin') renderAdminList();
-      if(view === 'pesan') refreshAllSelects(); // Perbarui opsi jika ada perubahan di admin
     }
 
-    // ==================== LOGIKA ADMIN ====================
+    // LOGIKA ADMIN
     function saveProduct() {
       const name = document.getElementById('newProdName').value.trim();
       const price = parseInt(document.getElementById('newProdPrice').value);
 
-      if (!name || isNaN(price)) return alert('Nama dan Harga produk harus diisi dengan benar!');
+      if (!name || isNaN(price)) return alert('Nama dan Harga produk harus diisi!');
 
       products.push({ id: Date.now(), name, price });
       localStorage.setItem('wa_products', JSON.stringify(products));
@@ -329,30 +330,26 @@ let products = JSON.parse(localStorage.getItem('wa_products')) || [
       `).join('');
     }
 
-    // ==================== LOGIKA FORM PESANAN ====================
-    function getProductOptions() {
-      let options = `<option value="">-- Pilih Produk --</option>`;
-      products.forEach(p => {
-        options += `<option value="${p.id}" data-price="${p.price}" data-name="${p.name}">${p.name} - Rp ${p.price.toLocaleString('id-ID')}</option>`;
-      });
-      return options;
-    }
-
+    // LOGIKA FORM PESANAN DENGAN SEARCH AUTOCOMPLETE
     function addOrderItem() {
       cartCounter++;
       const id = `item-${cartCounter}`;
       const div = document.createElement('div');
       div.className = 'item-row';
       div.id = id;
+      div.setAttribute('data-price', '0');
+      div.setAttribute('data-name', '');
+
       div.innerHTML = `
-        <div class="form-group">
-          <label>Pilih Produk</label>
-          <select class="prod-select" onchange="calculateTotal()">${getProductOptions()}</select>
+        <div class="form-group search-container">
+          <label>Cari Nama Produk</label>
+          <input type="text" class="prod-search" placeholder="Ketik nama produk..." oninput="searchProduct(this)" onfocus="searchProduct(this)">
+          <div class="suggestions hidden"></div>
         </div>
         <div class="flex-row">
           <div class="flex-1 form-group">
             <label>Jumlah</label>
-            <input type="number" class="prod-qty" value="1" min="1" onchange="calculateTotal()">
+            <input type="number" class="prod-qty" value="1" min="1" oninput="calculateTotal()">
           </div>
           <div class="flex-1 form-group" style="text-align:right;">
             <label>Subtotal</label>
@@ -364,82 +361,116 @@ let products = JSON.parse(localStorage.getItem('wa_products')) || [
       document.getElementById('orderItems').appendChild(div);
     }
 
-    function refreshAllSelects() {
-      const selects = document.querySelectorAll('.prod-select');
-      selects.forEach(select => {
-        const currentValue = select.value;
-        select.innerHTML = getProductOptions();
-        select.value = currentValue; // Kembalikan pilihan jika produk masih ada
-      });
+    function searchProduct(inputEl) {
+      const query = inputEl.value.toLowerCase().trim();
+      const container = inputEl.closest('.search-container');
+      const suggestionsBox = container.querySelector('.suggestions');
+      const row = inputEl.closest('.item-row');
+
+      // Reset data produk jika kata kunci diubah
+      row.setAttribute('data-price', '0');
+      row.setAttribute('data-name', '');
+      calculateTotal();
+
+      const filtered = products.filter(p => p.name.toLowerCase().includes(query));
+
+      if (filtered.length === 0) {
+        suggestionsBox.innerHTML = '<div class="suggestion-item" style="color:#888;">Produk tidak ditemukan</div>';
+        suggestionsBox.classList.remove('hidden');
+        return;
+      }
+
+      // Tampilkan maksimal 10 hasil teratas agar tidak terlalu panjang
+      suggestionsBox.innerHTML = filtered.slice(0, 10).map(p => `
+        <div class="suggestion-item" onclick="selectProduct('${row.id}', ${p.id})">
+          <strong>${p.name}</strong><br>
+          <small style="color:#00897b">Rp ${p.price.toLocaleString('id-ID')}</small>
+        </div>
+      `).join('');
+
+      suggestionsBox.classList.remove('hidden');
+    }
+
+    function selectProduct(rowId, productId) {
+      const row = document.getElementById(rowId);
+      const p = products.find(item => item.id === productId);
+      if (!p) return;
+
+      const inputEl = row.querySelector('.prod-search');
+      const suggestionsBox = row.querySelector('.suggestions');
+
+      inputEl.value = p.name;
+      row.setAttribute('data-price', p.price);
+      row.setAttribute('data-name', p.name);
+
+      suggestionsBox.classList.add('hidden');
       calculateTotal();
     }
 
+    // Sembunyikan rekomendasi saat klik di luar area pencarian
+    document.addEventListener('click', function(e) {
+      if (!e.target.closest('.search-container')) {
+        document.querySelectorAll('.suggestions').forEach(box => box.classList.add('hidden'));
+      }
+    });
+
     function calculateTotal() {
       let grandTotal = 0;
-      const rows = document.querySelectorAll('.item-row');
-      
-      rows.forEach(row => {
-        const select = row.querySelector('.prod-select');
+      document.querySelectorAll('.item-row').forEach(row => {
+        const price = parseInt(row.getAttribute('data-price')) || 0;
         const qty = parseInt(row.querySelector('.prod-qty').value) || 0;
-        const subtotalEl = row.querySelector('.subtotal');
+        const sub = price * qty;
         
-        let price = 0;
-        if (select.selectedIndex > 0) {
-          price = parseInt(select.options[select.selectedIndex].getAttribute('data-price'));
-        }
-        
-        const subtotal = price * qty;
-        subtotalEl.innerText = subtotal.toLocaleString('id-ID');
-        grandTotal += subtotal;
+        row.querySelector('.subtotal').innerText = sub.toLocaleString('id-ID');
+        grandTotal += sub;
       });
 
       document.getElementById('grandTotal').innerText = grandTotal.toLocaleString('id-ID');
     }
 
-    // ==================== GENERATE PESAN WA ====================
+    // GENERATE PESAN WA
     function generateAndSendWA() {
       const name = document.getElementById('custName').value.trim();
       const date = document.getElementById('orderDate').value;
       let phone = document.getElementById('waNumber').value.trim().replace(/[^0-9]/g, '');
       const note = document.getElementById('orderNote').value.trim();
 
-      // Validasi
       if (!name) return alert('Nama pemesan wajib diisi!');
       
       const rows = document.querySelectorAll('.item-row');
       if (rows.length === 0) return alert('Pilih minimal satu barang pesanan!');
 
-      // Ubah format nomor dari 08xx menjadi 628xx
       if (phone.startsWith('0')) phone = '62' + phone.slice(1);
 
-      // Susun Teks Pesanan
-      let text = `*PESANAN BARANG*\n`;
-      text += `-----------------------------------\n`;
+      let text = `*PESANAN BARANG*\n-----------------------------------\n`;
       text += `*Nama:* ${name}\n`;
       text += `*Tanggal:* ${date}\n\n`;
       text += `*Daftar Pesanan:*\n`;
 
       let grandTotal = 0;
-      rows.forEach((row, index) => {
-        const select = row.querySelector('.prod-select');
+      let validItemsCount = 0;
+
+      rows.forEach(row => {
+        const prodName = row.getAttribute('data-name');
+        const prodPrice = parseInt(row.getAttribute('data-price')) || 0;
         const qty = parseInt(row.querySelector('.prod-qty').value) || 0;
-        
-        if (select.selectedIndex > 0) {
-          const prodName = select.options[select.selectedIndex].getAttribute('data-name');
-          const prodPrice = parseInt(select.options[select.selectedIndex].getAttribute('data-price'));
+
+        if (prodName && prodPrice > 0 && qty > 0) {
+          validItemsCount++;
           const sub = prodPrice * qty;
           grandTotal += sub;
 
-          text += `${index + 1}. ${prodName}\n`;
+          text += `${validItemsCount}. ${prodName}\n`;
           text += `   ${qty} x Rp ${prodPrice.toLocaleString('id-ID')} = *Rp ${sub.toLocaleString('id-ID')}*\n`;
         }
       });
+
+      if (validItemsCount === 0) return alert('Silakan cari dan pilih produk dari daftar terlebih dahulu!');
 
       text += `-----------------------------------\n`;
       text += `*Total Harga: Rp ${grandTotal.toLocaleString('id-ID')}*\n`;
       if (note) text += `\n*Catatan:* ${note}\n`;
 
-      // Eksekusi Hyperlink WA
       const encodedText = encodeURIComponent(text);
       const waUrl = phone 
         ? `https://wa.me/${phone}?text=${encodedText}` 
@@ -448,10 +479,9 @@ let products = JSON.parse(localStorage.getItem('wa_products')) || [
       window.open(waUrl, '_blank');
     }
 
-    // Tampilkan 1 baris pesanan kosong saat pertama kali dimuat
+    // Inisialisasi awal
     addOrderItem();
 
-    // Daftarkan Service Worker
     if ('serviceWorker' in navigator) {
       navigator.serviceWorker.register('sw.js');
     }
