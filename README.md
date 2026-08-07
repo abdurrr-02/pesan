@@ -15,9 +15,10 @@ Aplikasi web kasir dan generator pesanan WhatsApp yang ringan, responsif, serta 
 ### 🏧 2. Sistem Kasir & Cetak Struk
 * **Skema Diskon Kategori Pembeli**:
   * Konsumen (Tanpa Diskon)
-  * Reseller (Diskon 10%)
-  * Sub-agen (Diskon 20%)
-  * Agen (Diskon 30%)
+  * Marketer (Diskon 10%)
+  * Reseller (Diskon 20%)
+  * Sub-agen (Diskon 30%)
+  * Agen (Diskon 35%)
 * **Kalkulator Kembalian**: Menghitung otomatis kembalian berdasarkan jumlah uang tunai yang diterima.
 * **Dukungan Printer Thermal**: Format cetak struk siap pakai untuk ukuran kertas **58mm** dan **80mm**.
 * **Cetak Ulang Struk**: Fitur cetak ulang transaksi terakhir yang tersimpan di memori lokal.
