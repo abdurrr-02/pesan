@@ -7,6 +7,8 @@
   <link rel="manifest" href="manifest.json">
   <meta name="theme-color" content="#075e54">
   <meta name="description" content="Aplikasi form pesanan WhatsApp dan kasir dengan cetak struk thermal PDF.">
+  <!-- Pustaka html2pdf untuk membuat PDF langsung dari browser -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     body {
@@ -57,6 +59,9 @@
       font-size: 1.05rem;
       border-bottom: 2px solid #e8f5e9;
       padding-bottom: 10px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
     }
     .form-group { margin-bottom: 13px; }
     .form-group:last-child { margin-bottom: 0; }
@@ -125,6 +130,18 @@
       transition: background 0.15s;
     }
     .btn-edit:hover { background: #bbdefb; }
+    .btn-reprint {
+      background: #e8f5e9;
+      color: #2e7d32;
+      border: 1px solid #c8e6c9;
+      padding: 4px 10px;
+      border-radius: 7px;
+      cursor: pointer;
+      font-size: 0.8rem;
+      font-weight: 700;
+      transition: background 0.15s;
+    }
+    .btn-reprint:hover { background: #c8e6c9; }
     .btn-cancel {
       background: #f5f5f5;
       color: #616161;
@@ -264,10 +281,22 @@
     th, td { padding: 9px 10px; border-bottom: 1px solid #f0f0f0; text-align: left; font-size: 0.87rem; }
     th { background: #f8f9fa; font-weight: 700; color: #555; font-size: 0.8rem; }
     tr:hover td { background: #fafffe; }
+    
+    .history-item {
+      padding: 10px 12px;
+      border: 1px solid #e0e0e0;
+      border-radius: 10px;
+      margin-bottom: 8px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: #fafafa;
+    }
+    .history-info { font-size: 0.83rem; }
+    .history-time { font-size: 0.75rem; color: #757575; }
+    .history-total { font-weight: 700; color: #1b5e20; }
+
     #print-receipt { display: none; }
-    .btn-history { background: #ede7f6; color: #4527a0; border: 1px solid #d1c4e9; }
-    .btn-history:hover { background: #d1c4e9; }
-    .btn-history:disabled { opacity: 0.5; cursor: not-allowed; }
     @media print {
       * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
       body > *:not(#print-receipt) { display: none !important; }
@@ -278,27 +307,42 @@
         color: #000;
         background: #fff;
       }
-      #print-receipt.paper-80 { width: 80mm; max-width: 80mm; padding: 4mm 3mm; font-size: 10.5pt; }
-      #print-receipt.paper-58 { width: 58mm; max-width: 58mm; padding: 3mm 2mm; font-size: 8.5pt; }
+      #print-receipt.size-80mm {
+        width: 80mm;
+        max-width: 80mm;
+        padding: 4mm 3mm;
+        font-size: 10.5pt;
+      }
+      #print-receipt.size-58mm {
+        width: 58mm;
+        max-width: 58mm;
+        padding: 2mm 1.5mm;
+        font-size: 8.5pt;
+      }
       .rcp-store { text-align: center; font-weight: 900; letter-spacing: 0.5px; margin-bottom: 1mm; }
-      .paper-80 .rcp-store { font-size: 14pt; }
-      .paper-58 .rcp-store { font-size: 11pt; }
+      .size-80mm .rcp-store { font-size: 14pt; }
+      .size-58mm .rcp-store { font-size: 11pt; }
+      
       .rcp-divider { border: none; border-top: 1px dashed #000; margin: 2mm 0; }
       .rcp-line { display: flex; justify-content: space-between; margin: 1.5mm 0; }
-      .paper-80 .rcp-line { font-size: 9.5pt; }
-      .paper-58 .rcp-line { font-size: 8pt; }
+      .size-80mm .rcp-line { font-size: 9.5pt; }
+      .size-58mm .rcp-line { font-size: 8pt; }
+
       .rcp-item-name { font-weight: 700; margin: 2mm 0 0.5mm; word-break: break-word; }
-      .paper-80 .rcp-item-name { font-size: 9.5pt; }
-      .paper-58 .rcp-item-name { font-size: 8pt; }
-      .rcp-item-calc { display: flex; justify-content: space-between; color: #333; padding-left: 3mm; }
-      .paper-80 .rcp-item-calc { font-size: 9pt; }
-      .paper-58 .rcp-item-calc { font-size: 7.5pt; }
+      .size-80mm .rcp-item-name { font-size: 9.5pt; }
+      .size-58mm .rcp-item-name { font-size: 8pt; }
+
+      .rcp-item-calc { display: flex; justify-content: space-between; color: #333; padding-left: 2mm; }
+      .size-80mm .rcp-item-calc { font-size: 9pt; }
+      .size-58mm .rcp-item-calc { font-size: 7.5pt; }
+
       .rcp-total { display: flex; justify-content: space-between; font-weight: 900; margin: 1mm 0; }
-      .paper-80 .rcp-total { font-size: 12.5pt; }
-      .paper-58 .rcp-total { font-size: 10.5pt; }
-      .rcp-footer { text-align: center; margin-top: 4mm; line-height: 1.5; }
-      .paper-80 .rcp-footer { font-size: 9pt; }
-      .paper-58 .rcp-footer { font-size: 7.5pt; }
+      .size-80mm .rcp-total { font-size: 12.5pt; }
+      .size-58mm .rcp-total { font-size: 10pt; }
+
+      .rcp-footer { text-align: center; margin-top: 4mm; line-height: 1.4; }
+      .size-80mm .rcp-footer { font-size: 9pt; }
+      .size-58mm .rcp-footer { font-size: 7.5pt; }
     }
   </style>
 </head>
@@ -375,10 +419,21 @@
       </div>
     </div>
     <div class="card">
-      <h2>&#128424;&#65039; Cetak Struk</h2>
+      <h2>&#128424;&#65039; Cetak &amp; Kirim Struk</h2>
+      <div class="form-group">
+        <label>Ukuran Kertas Struk Thermal</label>
+        <select id="kasirPaperSize">
+          <option value="80mm">80mm (Standar Toko/Kasir Besar)</option>
+          <option value="58mm">58mm (Printer Portable Bluetooth)</option>
+        </select>
+      </div>
       <div class="form-group">
         <label>Nama Pelanggan</label>
         <input type="text" id="kasirCustName" placeholder="Nama pelanggan (opsional)" oninput="syncName('kasirCustName')">
+      </div>
+      <div class="form-group">
+        <label>Nomor WA Pelanggan (opsional)</label>
+        <input type="tel" id="kasirWaNumber" placeholder="Contoh: 628123456789">
       </div>
       <div class="form-group">
         <label>Jenis Pembeli (Diskon)</label>
@@ -393,13 +448,6 @@
         <label>Nama Toko / Usaha (muncul di struk)</label>
         <input type="text" id="kasirStoreName" placeholder="Contoh: Toko Herbal Bu Sari">
       </div>
-      <div class="form-group">
-        <label>Ukuran Kertas Struk</label>
-        <select id="kasirPaperSize" onchange="savePaperSize()">
-          <option value="80">80mm (Umum)</option>
-          <option value="58">58mm (Printer Mini)</option>
-        </select>
-      </div>
       <div class="cash-grid">
         <div class="form-group" style="margin-bottom:0;">
           <label>Uang Diterima (Rp)</label>
@@ -410,8 +458,19 @@
           <div class="change-value" id="kasirChange">Rp 0</div>
         </div>
       </div>
-      <button class="btn btn-print" onclick="printStruk()">&#128424;&#65039; Cetak Struk (PDF)</button>
-      <button class="btn btn-cancel btn-history" id="btnReprint" onclick="reprintLastReceipt()" disabled>&#128257; Cetak Ulang Struk Terakhir</button>
+      <div style="display: flex; gap: 10px; margin-top: 10px;">
+        <button class="btn btn-print" style="margin-top:0; flex:1;" onclick="printStruk()">&#128424;&#65039; Cetak Struk</button>
+        <button class="btn btn-wa" style="margin-top:0; flex:1;" id="btnShareWa" onclick="sendKasirWA()">&#128640; Kirim WA &amp; PDF</button>
+      </div>
+    </div>
+
+    <!-- HISTORI STRUK TERAKHIR -->
+    <div class="card">
+      <h2>
+        <span>&#128336; Histori Struk Terakhir</span>
+        <button class="btn-del btn-sm" onclick="clearReceiptHistory()">Hapus Semua</button>
+      </h2>
+      <div id="receiptHistoryList"></div>
     </div>
   </div>
 
@@ -528,6 +587,7 @@
   ];
 
   let products = JSON.parse(localStorage.getItem('wa_products')) || defaultProducts;
+  let receiptHistory = JSON.parse(localStorage.getItem('wa_receipt_history')) || [];
   let cart = [];
 
   function rp(n) { return Math.round(n).toLocaleString('id-ID'); }
@@ -547,6 +607,7 @@
     hideAllSuggestions();
     if (view==='admin') renderAdminList();
     if (view==='kasir'||view==='pesan') renderCarts();
+    if (view==='kasir') renderReceiptHistory();
   }
 
   function syncName(src) {
@@ -669,54 +730,9 @@
     el.className = 'change-value'+(ch<0&&cash>0?' negative':'');
   }
 
-  function savePaperSize() {
-    const size = document.getElementById('kasirPaperSize').value;
-    localStorage.setItem('wa_paper_size', size);
-  }
-
-  function loadPaperSize() {
-    const saved = localStorage.getItem('wa_paper_size') || '80';
-    document.getElementById('kasirPaperSize').value = saved;
-    return saved;
-  }
-
-  function saveLastReceipt(html, paperSize) {
-    localStorage.setItem('wa_last_receipt', JSON.stringify({
-      html,
-      paperSize,
-      savedAt: new Date().toISOString()
-    }));
-    updateReprintButton();
-  }
-
-  function updateReprintButton() {
-    const btn = document.getElementById('btnReprint');
-    const saved = localStorage.getItem('wa_last_receipt');
-    if (!btn) return;
-    if (saved) {
-      const data = JSON.parse(saved);
-      const d = new Date(data.savedAt);
-      const label = d.toLocaleDateString('id-ID',{day:'2-digit',month:'short'}) + ' ' + d.toLocaleTimeString('id-ID',{hour:'2-digit',minute:'2-digit'});
-      btn.disabled = false;
-      btn.innerHTML = `&#128257; Cetak Ulang Struk Terakhir (${label})`;
-    } else {
-      btn.disabled = true;
-      btn.innerHTML = '&#128257; Cetak Ulang Struk Terakhir';
-    }
-  }
-
-  function reprintLastReceipt() {
-    const saved = localStorage.getItem('wa_last_receipt');
-    if (!saved) { alert('Belum ada struk yang tersimpan.'); return; }
-    const data = JSON.parse(saved);
-    const receiptEl = document.getElementById('print-receipt');
-    receiptEl.className = 'paper-' + (data.paperSize || '80');
-    receiptEl.innerHTML = data.html;
-    window.print();
-  }
-
   function printStruk() {
     if (cart.length===0) { alert('Keranjang masih kosong!'); return; }
+    const paperSize = document.getElementById('kasirPaperSize').value;
     const storeName = document.getElementById('kasirStoreName').value.trim()||'Toko Kami';
     const custName = document.getElementById('kasirCustName').value.trim()||document.getElementById('custName').value.trim();
     
@@ -749,8 +765,7 @@
     const custHTML = custName ? `<div class="rcp-line"><span>Pelanggan</span><span>${custName}</span></div>` : '';
     const buyerHTML = `<div class="rcp-line"><span>Kategori</span><span>${buyerLabel}</span></div>`;
 
-    const paperSize = document.getElementById('kasirPaperSize').value || '80';
-    const receiptHTML = `
+    const fullReceiptHTML = `
       <div class="rcp-store">${storeName}</div>
       <hr class="rcp-divider">
       <div class="rcp-line"><span>Tanggal</span><span>${nowDate}</span></div>
@@ -766,11 +781,206 @@
       <hr class="rcp-divider">
       <div class="rcp-footer">Terima kasih sudah berbelanja!<br>Semoga berkah &amp; bermanfaat &#128591;</div>`;
 
-    const receiptEl = document.getElementById('print-receipt');
-    receiptEl.className = 'paper-' + paperSize;
-    receiptEl.innerHTML = receiptHTML;
-    saveLastReceipt(receiptHTML, paperSize);
+    const printContainer = document.getElementById('print-receipt');
+    printContainer.className = 'size-' + paperSize;
+    printContainer.innerHTML = fullReceiptHTML;
+
+    // SIMPAN KE HISTORI STRUK
+    const historyItem = {
+      id: Date.now(),
+      date: nowDate + ' ' + nowTime,
+      custName: custName || 'Umum',
+      total: tot,
+      paperSize: paperSize,
+      html: fullReceiptHTML
+    };
+    receiptHistory.unshift(historyItem);
+    if (receiptHistory.length > 30) receiptHistory.pop();
+    localStorage.setItem('wa_receipt_history', JSON.stringify(receiptHistory));
+    renderReceiptHistory();
+
     window.print();
+  }
+
+  async function sendKasirWA() {
+    if (cart.length === 0) return alert('Keranjang masih kosong!');
+    
+    const btn = document.getElementById('btnShareWa');
+    const origBtnText = btn.innerHTML;
+    btn.innerHTML = '⏳ Memproses PDF...';
+    btn.disabled = true;
+
+    try {
+      const storeName = document.getElementById('kasirStoreName').value.trim() || 'Toko Kami';
+      const custName = document.getElementById('kasirCustName').value.trim() || 'Pelanggan';
+      let phone = document.getElementById('kasirWaNumber').value.trim().replace(/[^0-9]/g, '');
+      
+      const subtotal = cartTotal();
+      const discRate = getKasirDiscountRate();
+      const discAmount = subtotal * discRate;
+      const tot = subtotal - discAmount;
+      const cash = parseFloat(document.getElementById('kasirCash').value) || 0;
+      const change = cash > 0 ? cash - tot : null;
+
+      const nowDate = new Date().toLocaleDateString('id-ID', {day:'2-digit', month:'long', year:'numeric'});
+      const nowTime = new Date().toLocaleTimeString('id-ID', {hour:'2-digit', minute:'2-digit'});
+
+      const buyerSelect = document.getElementById('kasirBuyerType');
+      const buyerLabel = buyerSelect.options[buyerSelect.selectedIndex].text.split(' (')[0];
+
+      if (phone.startsWith('0')) phone = '62' + phone.slice(1);
+
+      // PEUSAN TEKS UNTUK WA
+      let text = `*${storeName.toUpperCase()}*\n`;
+      text += `*STRUK / NOTA PEMBAYARAN*\n`;
+      text += `-----------------------------------\n`;
+      text += `Tanggal   : ${nowDate} ${nowTime}\n`;
+      text += `Pelanggan : ${custName}\n`;
+      text += `Kategori  : ${buyerLabel}\n`;
+      text += `-----------------------------------\n\n`;
+      text += `*DETAIL BELANJA:*\n`;
+
+      cart.forEach((item, i) => {
+        text += `${i + 1}. ${item.name}\n   ${item.qty} x Rp ${rp(item.price)} = Rp ${rp(item.price * item.qty)}\n`;
+      });
+
+      text += `-----------------------------------\n`;
+      if (discRate > 0) {
+        text += `Subtotal  : Rp ${rp(subtotal)}\n`;
+        text += `Diskon (${Math.round(discRate * 100)}%): -Rp ${rp(discAmount)}\n`;
+      }
+      text += `*TOTAL     : Rp ${rp(tot)}*\n`;
+
+      if (cash > 0) {
+        text += `Tunai     : Rp ${rp(cash)}\n`;
+        text += `Kembalian : Rp ${rp(Math.max(0, change))}\n`;
+      }
+
+      text += `-----------------------------------\n`;
+      text += `Terima kasih sudah berbelanja!\nSemoga berkah & bermanfaat 🙏`;
+
+      // PEMBUATAN ELEMEN STRUK KHUSUS PDF
+      const paperSize = document.getElementById('kasirPaperSize').value;
+      const pdfWidth = paperSize === '58mm' ? '54mm' : '76mm';
+
+      const itemsHTML = cart.map((item,i) => `
+        <div style="font-weight:bold; margin-top:4px;">${i+1}. ${item.name}</div>
+        <div style="display:flex; justify-content:space-between; color:#333; font-size:10px;">
+          <span>${item.qty} x Rp ${rp(item.price)}</span>
+          <span>Rp ${rp(item.price*item.qty)}</span>
+        </div>`).join('');
+
+      let discHTML = '';
+      if (discRate > 0) {
+        discHTML = `
+          <div style="display:flex; justify-content:space-between;"><span>Subtotal</span><span>Rp ${rp(subtotal)}</span></div>
+          <div style="display:flex; justify-content:space-between;"><span>Diskon (${Math.round(discRate*100)}%)</span><span>-Rp ${rp(discAmount)}</span></div>
+        `;
+      }
+
+      const cashHTML = change!==null ? `
+        <hr style="border:none; border-top:1px dashed #000; margin:4px 0;">
+        <div style="display:flex; justify-content:space-between;"><span>Tunai</span><span>Rp ${rp(cash)}</span></div>
+        <div style="display:flex; justify-content:space-between;"><span>Kembalian</span><span>Rp ${rp(Math.max(0,change))}</span></div>` : '';
+
+      const pdfContainer = document.createElement('div');
+      pdfContainer.style.width = pdfWidth;
+      pdfContainer.style.padding = '8px';
+      pdfContainer.style.background = '#fff';
+      pdfContainer.style.fontFamily = "'Courier New', Courier, monospace";
+      pdfContainer.style.fontSize = '11px';
+      pdfContainer.style.color = '#000';
+
+      pdfContainer.innerHTML = `
+        <div style="text-align:center; font-weight:bold; font-size:14px; margin-bottom:4px;">${storeName}</div>
+        <hr style="border:none; border-top:1px dashed #000; margin:4px 0;">
+        <div style="display:flex; justify-content:space-between;"><span>Tanggal</span><span>${nowDate}</span></div>
+        <div style="display:flex; justify-content:space-between;"><span>Jam</span><span>${nowTime}</span></div>
+        ${custName ? `<div style="display:flex; justify-content:space-between;"><span>Pelanggan</span><span>${custName}</span></div>` : ''}
+        <div style="display:flex; justify-content:space-between;"><span>Kategori</span><span>${buyerLabel}</span></div>
+        <hr style="border:none; border-top:1px dashed #000; margin:4px 0;">
+        ${itemsHTML}
+        <hr style="border:none; border-top:1px dashed #000; margin:4px 0;">
+        ${discHTML}
+        <div style="display:flex; justify-content:space-between; font-weight:bold; font-size:13px; margin:4px 0;"><span>TOTAL</span><span>Rp ${rp(tot)}</span></div>
+        ${cashHTML}
+        <hr style="border:none; border-top:1px dashed #000; margin:4px 0;">
+        <div style="text-align:center; font-size:10px; margin-top:8px;">Terima kasih sudah berbelanja!<br>Semoga berkah &amp; bermanfaat 🙏</div>
+      `;
+
+      // KONVERSI ELEMEN KE FILE PDF MEMORI
+      const opt = {
+        margin:       2,
+        filename:     `Struk_${custName.replace(/\s+/g, '_')}.pdf`,
+        image:        { type: 'jpeg', quality: 0.98 },
+        html2canvas:  { scale: 2 },
+        jsPDF:        { unit: 'mm', format: paperSize === '58mm' ? [58, 160] : [80, 200], orientation: 'portrait' }
+      };
+
+      const pdfBlob = await html2pdf().set(opt).from(pdfContainer).output('blob');
+      const pdfFile = new File([pdfBlob], `Struk_${custName.replace(/\s+/g, '_')}.pdf`, { type: 'application/pdf' });
+
+      // COBA BERBAGI DENGAN WEB SHARE API (HP)
+      if (navigator.canShare && navigator.canShare({ files: [pdfFile] })) {
+        await navigator.share({
+          files: [pdfFile],
+          title: 'Struk Pembayaran',
+          text: text
+        });
+      } else {
+        // FALLBACK BILA TIDAK DUKUNG BERBAGI BERKAS DIRECTLY (PC / BROWSER LAMA)
+        const url = phone 
+          ? `https://wa.me/${phone}?text=${encodeURIComponent(text)}`
+          : `https://wa.me/?text=${encodeURIComponent(text)}`;
+        window.open(url, '_blank');
+      }
+
+    } catch (err) {
+      console.error('Error saat share file:', err);
+      // Jika user membatalkan bagikan atau gagal, fallback kirim pesan teks WA biasa
+      let phone = document.getElementById('kasirWaNumber').value.trim().replace(/[^0-9]/g, '');
+      if (phone.startsWith('0')) phone = '62' + phone.slice(1);
+      const url = phone ? `https://wa.me/${phone}` : `https://wa.me/`;
+      window.open(url, '_blank');
+    } finally {
+      btn.innerHTML = origBtnText;
+      btn.disabled = false;
+    }
+  }
+
+  function renderReceiptHistory() {
+    const list = document.getElementById('receiptHistoryList');
+    if (receiptHistory.length === 0) {
+      list.innerHTML = '<div style="text-align:center;color:#aaa;padding:15px;font-size:0.85rem;">Belum ada histori transaksi.</div>';
+      return;
+    }
+    list.innerHTML = receiptHistory.map((h, i) => `
+      <div class="history-item">
+        <div class="history-info">
+          <div><strong>${h.custName}</strong> (${h.paperSize})</div>
+          <div class="history-time">${h.date}</div>
+          <div class="history-total">Rp ${rp(h.total)}</div>
+        </div>
+        <button class="btn-reprint" onclick="reprintReceipt(${i})">&#128424;&#65039; Cetak Ulang</button>
+      </div>
+    `).join('');
+  }
+
+  function reprintReceipt(index) {
+    const h = receiptHistory[index];
+    if (!h) return;
+    const printContainer = document.getElementById('print-receipt');
+    printContainer.className = 'size-' + h.paperSize;
+    printContainer.innerHTML = h.html;
+    window.print();
+  }
+
+  function clearReceiptHistory() {
+    if (confirm('Hapus semua histori transaksi?')) {
+      receiptHistory = [];
+      localStorage.removeItem('wa_receipt_history');
+      renderReceiptHistory();
+    }
   }
 
   function generateAndSendWA() {
@@ -877,9 +1087,8 @@
   }
 
   document.getElementById('orderDate').valueAsDate = new Date();
-  loadPaperSize();
-  updateReprintButton();
   renderCarts();
+  renderReceiptHistory();
   if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js');
 </script>
 </body>
