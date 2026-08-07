@@ -1,4 +1,4 @@
-# Generator Pesanan WhatsApp & Sistem Kasir Thermal
+# Generator Pesanan WhatsApp & Sistem Kasir Thermal (Konteks: Produk Herbal SR 12)
 
 Aplikasi web kasir dan generator pesanan WhatsApp yang ringan, responsif, serta siap pakai. Dibuat menggunakan HTML5, CSS3, dan Vanilla JavaScript tanpa dependensi *framework* atau *backend* eksternal. Data tersimpan secara lokal di peramban pengguna menggunakan **LocalStorage**.
 
